@@ -12,6 +12,7 @@ require 'rubygems'
 require 'json'
 require 'net/https'
 require 'xmlrpc/client'
+require 'optparse'
 
 def publish_to_wordpress(title, content, tags, categories)
   # build a post
@@ -36,18 +37,53 @@ def publish_to_wordpress(title, content, tags, categories)
   )
 end
 
-def get_param(pattern)
-  if ARGV[0] == pattern
-  	ARGV.shift
-  	value = ARGV[0]
-  	ARGV.shift
-  	return value
-  end
+options = {}
+optparse = OptionParser.new do|opts|
+   # Set a banner, displayed at the top
+   # of the help screen.
+   opts.banner = "Usage: post.rb [options] file"
+   opts.separator ""
+   opts.separator "Specific options:"
+ 
+   # Define the options, and what they do
+   opts.on( '-s', '--title [BlogTitle]', 'Blog title' ) do|title|
+     options[:title] = title
+   end
+ 
+   options[:tags] = nil
+   opts.on( '-t', '--tags tag1,tag2,tag3', Array, 'Tags blog' ) do|tags|
+     options[:tags] = tags
+   end
+
+   options[:categories] = nil
+   opts.on( '-c', '--categories cat1,cat2,cat3', Array, 'Blog categories' ) do|categories|
+     options[:categories] = categories
+   end
+ 
+   opts.on( '-h', '--help', 'Display this message' ) do
+     puts opts
+     exit
+   end
 end
 
-title = get_param("-s")
-tags = get_param("-t").split(",") 
-categories = get_param("-c").split(",") 
+begin
+  optparse.parse!
+  mandatory = [:tags, :categories] 
+  missing = mandatory.select{ |param| options[param].nil? } 
+  if not missing.empty?
+    puts "Missing options: #{missing.join(', ')}" 
+    puts optparse 
+    exit
+  end     
+rescue OptionParser::InvalidOption, OptionParser::MissingArgument
+  puts $!.to_s 
+  puts optparse
+  exit
+end
+
+title = options[:title]
+tags = options[:tags]
+categories = options[:categories]
 
 input = ''
 if ARGV.length > 0
@@ -100,5 +136,3 @@ ENDOUTPUT
 else
 	puts "Error #{response.code}"
 end
-
-
