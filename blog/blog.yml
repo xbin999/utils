@@ -1,0 +1,9 @@
+# publish^tag1_tag2^helloworld.md
+# backup^tag1_tag2^helloworld.md
+source: /Users/xbin999/Documents/markdown
+destination: /Users/xbin999/db/hexo/source/_posts
+backup: /Users/xbin999/Documents/markdown
+prefix: publish
+namesep: ^
+tagsep: _
+logfile: /Users/xbin999/tmp/log/post.log
