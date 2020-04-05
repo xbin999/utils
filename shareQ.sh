@@ -296,6 +296,7 @@ if [ -f _xtmp_canvas_result.png ]; then
   mv _xtmp_canvas_result.png "result_${MAIN}.png"
 fi
 if [ "$DEBUG" != "Y" ]; then
+  echo "rm all tmp files"
   rm _xtmp_*.png
 fi
 
