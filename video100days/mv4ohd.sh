@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # @xbin999 (xbin999@gmail.com)
-# make video for one hundred days
+# Pick random second from videos and concat. It can be used for 100 days exercises.
 # based on ffmpeg
 
 helpFunction()
