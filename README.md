@@ -16,3 +16,8 @@
 将指定目录形如 publish^tag1_tag2^helloworld.md的文件解析生成hexo 博客的头，同时调用hexo generate --deploy 完成静态博客的编译和发布。
 
 - 依赖于[Hexo](https://hexo.io/)
+
+# video100days
+从一批视频文件中随机截取1秒来生成一个新的视频，文件名需要排序并会作为视频标题，可以用于100天的行动。
+
+- 依赖于[ffmpeg](https://ffmpeg.org/)
