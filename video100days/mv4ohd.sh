@@ -1,28 +1,78 @@
 #!/bin/sh
 
+# @xbin999 (xbin999@gmail.com)
 # make video for one hundred days
-
-# video name should be sorted 
-# pick one second per video
-# combine all one-second videos
-# need to know width:height of video and add pad
-# file's basename will be added in the video as title
 # based on ffmpeg
 
-# parameters:
-# width
-# height
-# dpv
+helpFunction()
+{
+   echo "-----------------------------------"
+   echo "Usage: $0 [-w video_width] [-h video_height] [-d dpv] -s source -t target"
+   echo "\t-w The width of video"
+   echo "\t-h The height of video"
+   echo "\t-d Duration fetched from per video"
+   echo "\t-s Source video files(with comma), like \"/Users/xbin999/Downloads/jump/*.mp4\""
+   echo "\t-m Target video filename"
+   exit 1 # Exit script after printing help
+}
+
+while getopts w:h:d:s:t: opt
+do
+   case "$opt" in
+      w) video_width="$OPTARG" ;;
+      h) video_height="$OPTARG" ;;
+      d) dpv="$OPTARG" ;;
+      s) source="$OPTARG" ;;
+      t) target="$OPTARG" ;;
+      *) helpFunction ;; # Print helpFunction in case parameter is non-existent
+   esac
+done
+
+if [ -z "$video_width" ] || [ -z "$video_height" ] 
+then
+   video_width=960
+   video_height=544
+fi
+
+if [ -z "$dpv" ] 
+then
+   dpv=1
+fi
+
+# Print helpFunction in case parameters are empty
+if [ -z "$source" ] || [ -z "$target" ]
+then
+   echo "Parameters 'source/output' are empty";
+   helpFunction
+fi
+
+# Begin script in case all parameters are correct
+#echo "$video_width"
+#echo "$video_height"
+#echo "$dpv"
+#echo "$source"
+#echo "$target"
 
 function scale() {
     local IN=$1
-    local width=$2
-    local height=$3
+    local canvas_width=$2
+    local canvas_height=$3
+    local video_size=(${IN//x/ })
+    local canvas_width_video_height=$((${canvas_width}*${video_size[1]}))
+    local canvas_height_video_width=$((${canvas_height}*${video_size[0]}))
+    local resized_height
+    local resized_width
 
-    local size=(${IN//x/ })
-    local n_height=${height}
-    local n_width=$((${size[0]}*${n_height}/${size[1]}))
-    echo "${n_width}x${n_height}"
+    # sh doesn't support float division, change comparision from aspect ration to multiply 
+    if [ $canvas_width_video_height -gt $canvas_height_video_width ]
+    then
+        resized_height=${canvas_height}
+        resized_width=$((${video_size[0]}*${resized_height}/${video_size[1]}))
+    else
+        resized_width=${canvas_width}
+        resized_height=$((${video_size[1]}*${resized_width}/${video_size[0]}))
+    fi    
+    echo "${resized_width}x${resized_height}"
 }
 
 function fetchVideo() {
@@ -58,43 +108,25 @@ function fetchVideo() {
         drawtext=text=${title}:x=10:y=10:fontsize=24:fontcolor=white:shadowy=2" \
        tmp_${title}.mp4`
     
-    echo "file 'tmp_${title}.mp4'" >> list.txt 
+    `ffmpeg -y -i tmp_${title}.mp4 -vcodec copy -acodec copy -vbsf h264_mp4toannexb tmp_${title}.ts`
+
+    echo "file 'tmp_${title}.ts'" >> list.txt 
     return 
 }
 
-w=960
-h=544
-dpv=1 # fetch duration from per video
-
 > list.txt
-filename="/Users/xbin999/Downloads/jump/2020-03-02.mp4"
-fetchVideo $filename $w $h $dpv 
-#echo "file 'tmp_${filename##*/}'" >> list.txt 
-filename="/Users/xbin999/Downloads/jump/2020-03-12.mp4"
-fetchVideo $filename $w $h $dpv 
-#echo "file 'tmp_${filename##*/}'" >> list.txt 
+for filename in `ls -v ${source}`; do 
+    fetchVideo $filename $video_width $video_height $dpv 
+    echo $filename
+done;
 
-ffmpeg -y -safe 0 -f concat -i list.txt -c copy output.mp4
+# concat all videos
+ffmpeg -y -safe 0 -f concat -i list.txt -c copy ${target}
 
-exit
+# remove tmp files
+rm tmp*.mp4 tmp*.ts 
+exit 0
 
-# the following are ffmpeg examples
-ffmpeg -y -i ~/Downloads/jump/2020-03-01.mp4 -ss 00:00:02 -t 1 -vf 'scale=405:720,pad=1280:720:400:93:black' output1.mp4 
-ffmpeg -i ~/Downloads/jump/2020-03-12.mp4 -ss 00:00:02 -t 1 -vf "drawtext=text='2020-03-01':x=700:y=200:fontsize=24:fontcolor=red" output2.mp4 
-
-ffmpeg -y -i ~/Downloads/jump/2020-03-01.mp4 -ss 00:00:02 -t 1 -vf "drawtext=text='2020-03-01':x=700:y=200:fontsize=24:fontcolor=red" output1.mp4 
-ffmpeg -y -i ~/Downloads/jump/2020-03-12.mp4 -ss 00:00:02 -t 1 -vf "drawtext=text='2020-03-01':x=700:y=200:fontsize=24:fontcolor=red" output2.mp4 
-
-ffmpeg -safe 0 -f concat -i list.txt -c copy output.mp4
-
-ffmpeg -y -i mavel4.mp4 -vf "drawtext=text='Avengers\: Endgame':x=700:y=200:fontsize=24:fontcolor=red" mavel4_drawtext.mp4
-
--vf drawtext=fontcolor=white:fontsize=40:fontfile=msyh.ttf:text='Hello World':x=0:y=100
-
-ffprobe -v error -show_entries stream=width,height -of csv=p=0:s=x ~/Downloads/jump/2020-03-01.mp4 
-ffprobe -v error -show_entries stream=width,height -of csv=p=0:s=x ~/Downloads/jump/2020-03-12.mp4 | awk '{split($0,a,"x");print a[1],a[2]}'
-
-ffmpeg -i myfile1.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts temp1.ts
-ffmpeg -i myfile2.mp4 -c copy -bsf:v h264_mp4toannexb -f mpegts temp2.ts
-// now join
-ffmpeg -i "concat:temp1.ts|temp2.ts" -c copy -bsf:a aac_adtstoasc output.mp4
+# run examples: 
+# ./mv4ohd.sh -s "/Users/xbin999/Downloads/jump/*.mp4" -t output.mp4
+# ./mv4ohd.sh -w 1024 -h 768 -d 1 -s "/Users/xbin999/Downloads/jump/*.mp4" -t output.mp4
